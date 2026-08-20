@@ -1,0 +1,203 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Excel Format Converter",
+    "description": "Converts Base64-encoded CSV, XLS, or XLSB data to a value-only XLSX workbook.",
+    "version": "1.0.0"
+  },
+  "host": "excel-converter.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [],
+  "paths": {
+    "/api/v1/convert-to-xlsx": {
+      "post": {
+        "operationId": "ConvertToXlsx",
+        "summary": "Convert a file to XLSX",
+        "description": "Converts Base64-encoded CSV, XLS, or XLSB content to an XLSX workbook containing worksheet names and cell values. The API allows 10 MB decoded input, but Power Automate's custom connector gateway request limit of 3,182,218 bytes makes the practical decoded file limit about 2 MB.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertToXlsxRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The converted XLSX file.",
+            "schema": {
+              "$ref": "#/definitions/ConvertToXlsxResponse"
+            }
+          },
+          "400": {
+            "description": "The request or source format is invalid.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "The decoded source file exceeds 10 MB.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "422": {
+            "description": "The workbook is damaged, encrypted, or cannot be decoded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "An unexpected conversion error occurred.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "GetHealth",
+        "summary": "Check service health",
+        "description": "Returns the health status of the conversion service.",
+        "x-ms-visibility": "internal",
+        "responses": {
+          "200": {
+            "description": "The service is healthy."
+          },
+          "503": {
+            "description": "The service is unhealthy."
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ConvertToXlsxRequest": {
+      "type": "object",
+      "required": [
+        "fileName",
+        "contentBase64"
+      ],
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Source file name including .csv, .xls, or .xlsb. Used to infer the format and output name.",
+          "x-ms-summary": "Source file name",
+          "x-ms-visibility": "important"
+        },
+        "sourceFormat": {
+          "type": "string",
+          "description": "Optional explicit source format. Overrides the file name extension.",
+          "enum": [
+            "csv",
+            "xls",
+            "xlsb"
+          ],
+          "x-ms-summary": "Source format",
+          "x-ms-visibility": "advanced"
+        },
+        "contentBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Base64-encoded source file. The API limit is 10 MB decoded; through Power Automate custom connectors, keep the decoded source at or below 2 MB to leave room under the gateway request limit.",
+          "x-ms-summary": "Source file Base64",
+          "x-ms-visibility": "important"
+        },
+        "csvEncoding": {
+          "type": "string",
+          "description": "Optional CSV encoding override. If omitted, BOM/UTF-8 detection is used with GB18030 fallback.",
+          "enum": [
+            "UTF-8",
+            "UTF-16",
+            "UTF-16BE",
+            "GB18030"
+          ],
+          "x-ms-summary": "CSV encoding",
+          "x-ms-visibility": "advanced"
+        },
+        "csvDelimiter": {
+          "type": "string",
+          "description": "Optional one-character CSV delimiter. Use \\\\t for tab. If omitted, comma, semicolon, tab, and pipe are auto-detected.",
+          "x-ms-summary": "CSV delimiter",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "ConvertToXlsxResponse": {
+      "type": "object",
+      "required": [
+        "fileName",
+        "contentType",
+        "contentBase64",
+        "sizeBytes",
+        "correlationId"
+      ],
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Suggested XLSX output file name.",
+          "x-ms-summary": "Output file name"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "XLSX MIME type.",
+          "x-ms-summary": "Content type"
+        },
+        "contentBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Base64-encoded XLSX file.",
+          "x-ms-summary": "XLSX file Base64"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Size of the decoded XLSX output in bytes.",
+          "x-ms-summary": "Output size"
+        },
+        "correlationId": {
+          "type": "string",
+          "description": "Request correlation ID for diagnostics.",
+          "x-ms-summary": "Correlation ID"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "correlationId"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable machine-readable error code."
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message."
+        },
+        "correlationId": {
+          "type": "string",
+          "description": "Request correlation ID for diagnostics."
+        }
+      }
+    }
+  },
+  "tags": []
+}
